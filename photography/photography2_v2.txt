@@ -1,0 +1,91 @@
+@name Photography2 v2
+@inputs Start:number Reset:number SCR:wirelink
+@outputs LR:number UD:number
+@persist 
+@trigger none
+@strict
+
+if (!SCR){print("error") exit()}
+
+#print(Ranger:outputType("RangerData"))
+
+
+
+# 1 - 512 inclusive
+let PixWidth = 128
+let Length = 250
+let PixX = 1
+let PixY = 1
+let PixDir = 1
+# degrees
+let Width = 30
+let Height = 30
+
+event input(Inp:string){
+    if (Inp == "Reset" && Reset == 1) {
+        print("Reset")
+
+        PixX = 1
+        PixY = 1
+    }
+    
+    if (Inp == "Start" && Start == 1) {
+        print("Start")   
+    }
+}
+
+
+
+
+
+
+
+# pixel index, max degrees in that axis
+function number index2Ang(Ind:number, Width:number) {
+    let Slice = Width / PixWidth
+    let HalfWidth = Width / 2
+    return (Ind * Slice) - HalfWidth
+}
+
+holoCreate(1,vec(0,0,0))
+
+timer("main", 0.015, -1, function() {
+    if(Start==0) {return}
+    
+    Xang = index2Ang(PixX, Width)
+    Yang = index2Ang(PixY, Height)
+    
+    Rang = rangerAngle(Length, Xang, Yang)
+    Dist = Rang:fraction()
+    
+    SCR[(PixX-1) + (PixY-1)*PixWidth] = (1 - Dist) * 255
+    
+    # Increment counters
+    PixX+= PixDir
+    if (PixX > PixWidth) {
+        PixDir = -1
+        PixY+= 1
+    } elseif (PixX < 1) {
+        PixDir = 1
+        PixY+= 1
+    }
+    
+    # back to top
+    if (PixY > PixWidth) {
+        PixY = 1
+    }
+
+    
+    EndPos = Rang:position()
+    Dist = Rang:distance()
+    Normal = Rang:hitNormal()
+    HoloAng = entity():angles() #+ ang(-Xang, Yang, 0)
+    holoPos(1,EndPos + (Normal*2)) 
+    holoAng(1,HoloAng) #Angle it. adding 90 to pitch because it is a cylinder, so I want to scale its Z, not its X.
+    holoScale(1,vec(0.2,0.2,4)) #Scale it to make it as long as the distance.
+
+})
+
+
+
+print("abc")

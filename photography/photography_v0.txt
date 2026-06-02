@@ -1,0 +1,88 @@
+@name Photography v0
+@inputs Start:number Reset:number EGP:wirelink Dist:number
+@outputs LR:number UD:number
+@persist 
+@trigger none
+@strict
+
+
+if (!EGP){print("error") exit()}
+
+
+# 1 - 512 inclusive
+let PixWidth = 512
+let PixX = 1
+let PixY = 1
+
+
+event input(Inp:string){
+    if (Inp == "Reset" && Reset == 1) {
+        print("Reset")
+        EGP:egpClear()
+        PixX = 1
+        PixY = 1
+    }
+    
+    if (Inp == "Start" && Start == 1) {
+        print("Start")   
+    }
+}
+
+
+
+
+
+
+
+# pixel index, max degrees in that axis
+function number index2Ang(Index:number, Width:number) {
+    let Slice = Width / PixWidth
+    let HalfWidth = Width / 2
+    return (Index * Slice) - HalfWidth
+}
+
+timer("main", 0.600, -1, function() {
+    if(Start==0) {return}
+    #print(PixX, PixY)
+    
+    LR = index2Ang(PixX, 10)
+    UD = index2Ang(PixY, 10)
+    
+    
+    # Increment counters
+    PixX+= 1
+    if (PixX > PixWidth) {
+        PixX = 1
+        PixY+= 1
+        if (PixY > PixWidth) {
+            PixY = 1
+        }
+    }
+})
+
+
+function draw() {
+    if(EGP) { # if EGP is valid
+        EGP:egpClear() # Clear screen contents
+    
+        let Box = EGP:egpBox(1, vec2(256, 256), vec2(200, 50)) # Create a 200x50 box in the center of the screen, at index 1
+        Box:setColor(vec(240, 60, 60)) # Color the object red using RGB values in a vector
+
+        EGP:egpTextLayout(2, table( # Create a TextLayout object in the center of the screen, at index 2
+            "text" = "Hello, World!",
+            "x" = 256 - 100,
+            "y" = 256 - 25,
+            "w" = 200,
+            "h" = 50,
+            "font" = "Roboto",
+            "size" = 30,
+            "r" = 60, "g" = 240, "b" = 240, # Colors the text cyan
+            "halign" = 1, "valign" = 1 # Centers the text in the TextLayout
+        ))
+    } else {
+        print("No EGP wired! Please wire the wirelink to a EGP screen")
+    }
+}
+
+draw() # Draw when E2 is spawned
+print("abc")

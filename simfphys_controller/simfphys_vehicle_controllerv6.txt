@@ -1,0 +1,107 @@
+@name Simfphys Vehicle ControllerV6
+@inputs Target:entity Vehicle:entity Enable
+@outputs Steer Throttle Rev Engine_Start Engine_Stop Handbrake RollCCW RollCW PitchDn PitchUp Out Out2 FL FR RL RR
+@persist A T D Dir Reversing Out2
+@trigger
+#####Made by Steveskeleton @October 23 2019#####
+####Please excuse my bad programming skills ####
+
+###               Instructions               ###
+
+# >Wire Steer, Throttle, Engine_Start/Stop and Handbrake to the Simfphys vehicle
+# >Wire ANY entity output to the Target input on the E2
+# >Wire an Entity Marker output to the Vehicle input 
+    #(!!!make sure to LINK it to the vehicle NOT wire or weld (right click)!!!)
+# >Connect a button to the Enable input
+# >Turn it on and make sure you do not enter the vehicle, if you do, just 
+    #restart the car a few times
+# >Optionally, you can lock the vehicle so nobody can enter.
+
+#Thanks for taking the time to check this out!
+
+
+
+Dir=0 #Eventually throttle is set to this, not sure what it means
+Throttle=0
+Handbrake=0
+Steer=0 #1 = right, -1 = left, 0 = straight
+
+interval(10)
+
+
+MaxAngToRev = 90 #115
+MaxRoll = 25
+MaxPitch = 10
+
+
+if (!Enable | Target:model()==noentity():model()) {
+    Engine_Start=0
+    Engine_Stop=1
+    Dir=0
+    }
+elseif (Enable) {
+    Engine_Stop=0
+    Engine_Start=1
+    Dir=0.5
+    } 
+
+A=bearing(Vehicle:pos(), Vehicle:angles(), Target:pos())
+
+Out = A
+Out2 = Reversing
+
+# PID
+Feedback = 0
+TargetAng = A
+Kp = 0.03
+Error = 0
+Error = A
+
+
+Corr = Error * Kp
+
+
+
+
+if (A<=-MaxAngToRev | A>=MaxAngToRev) {
+    Reversing = 1
+}
+if (Reversing == 1) {
+    if (A == 0) { #Stop reversing if facing target
+        Reversing = 0
+    }
+    
+    A = A -A*2 #Swap sign on A
+    Dir = -1
+    
+}
+A = clamp(A, -1, 1)
+Steer=A#-A*2 #Reverse steering
+
+Steer=Corr
+
+if (Dir<0) {Rev = Dir-Dir*2} else {Throttle=Dir*2 Rev=0}
+
+VAng = Vehicle:angles()
+Out = VAng:pitch()
+RollCW, RollCCW, PitchDn, PitchUp = 0
+if (VAng:roll() <= -MaxRoll) {RollCW = 1}   else {RollCW = 0}
+if (VAng:roll() >= MaxRoll) {RollCCW = 1}   else {RollCCW = 0}
+if (VAng:pitch() <= -MaxPitch) {PitchDn = 1} else {PitchDn = 0}
+if (VAng:pitch() >= MaxPitch) {PitchUp = 1} else {PitchUp = 0}
+
+RL=0 RR=0 FL=0 FR=0
+if (RollCW == 1) {RR=1, FR=1}
+if (RollCCW ==1) {RL=1, FL=1}
+if (PitchDn ==1) {FL=1, FR=1}
+if (PitchUp ==1) {RL=1, RR=1}
+
+
+
+
+
+
+
+
+
+

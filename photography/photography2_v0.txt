@@ -1,0 +1,42 @@
+@name aAAA
+@inputs Start:number Reset:number 
+@outputs
+@persist 
+@trigger none
+@strict
+
+
+
+
+event input(Inp:string){
+    if (Inp == "Reset" && Reset == 1) {
+
+    }
+    
+    if (Inp == "Start" && Start == 1) {
+        print("Start")
+    }
+}
+
+
+holoCreate(1,vec(0,0,0))
+
+timer("main", 0.02, -1, function() {
+    let Xang = 10
+    let Yang = 0
+    let Rang = rangerAngle(500, Xang, Yang)
+    
+    ThisPos = entity():pos()
+    EndPos = Rang:position()
+    Dist = Rang:distance()
+    
+    print(Dist)    
+    
+    HoloAng = entity():angles() + ang(Xang, 0, Yang)
+    holoPos(1,(ThisPos+EndPos)/2) #Move the holo the center of them (can also be done like this: "(TargetPos+CurrentPos)/2"
+    holoAng(1,HoloAng) #Angle it. adding 90 to pitch because it is a cylinder, so I want to scale its Z, not its X.
+    holoScale(1,vec(0.5,0.5,Dist)/12) #Scale it to make it as long as the distance.
+
+
+})
+

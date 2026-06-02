@@ -1,0 +1,125 @@
+@name Simfphys Vehicle ControllerV7
+@inputs Target:entity Vehicle:entity Enable
+@outputs Steer Throttle Rev Engine_Start Engine_Stop RollCCW RollCW PitchDn PitchUp Out FL FR RL RR
+@persist A Reversing
+@trigger
+#####Made by Steveskeleton @October 23 2019#####
+####Please excuse my bad programming skills ####
+
+###               Instructions               ###
+
+# >Wire Steer, Throttle, and Engine_Start/Stop to the Simfphys vehicle
+# >Wire ANY entity output to the Target input on the E2
+# >Wire an Entity Marker output to the Vehicle input 
+    #(!!!make sure to LINK it to the vehicle NOT wire or weld (right click)!!!)
+# >Connect a button to the Enable input
+# >Turn it on and make sure you do not enter the vehicle, if you do, just 
+    #restart the car a few times
+# >Optionally, you can lock the vehicle so nobody can enter.
+
+#Thanks for taking the time to check this out!
+
+Throttle=0
+Steer=0 #1 = right, -1 = left, 0 = straight
+
+
+function number isBetween(Var, Limit)
+{
+    if (Var >= -Limit && Var <= Limit) {
+        return 1
+    } else {
+        return 0
+    }
+}
+
+interval(10)
+
+
+MaxAngToRev = 90 #115
+MaxRoll = 25
+MaxPitch = 10
+
+
+if (!Enable | Target:model()==noentity():model()) {
+    Engine_Start=0
+    Engine_Stop=1
+    Throttle=0
+    }
+elseif (Enable) {
+    Engine_Stop=0
+    Engine_Start=1
+    Throttle=0.5
+    } 
+
+A=bearing(Vehicle:pos(), Vehicle:angles(), Target:pos())
+
+Proportional = 0.03
+
+Error = A # A is essentially just the difference between our current angle and desired angle
+
+Corr = Error * Proportional
+
+
+# set reverse mode if target is too far away from current heading
+if (A<=-MaxAngToRev | A>=MaxAngToRev) {
+    Reversing = 1
+}
+
+if (Reversing == 1) {
+    if (isBetween(Corr, 0.6) == 1) { #Stop reversing only once close to facing target
+        Reversing = 0
+    }
+    
+    
+    
+    if (isBetween(Corr, 0.8) == 1) { # slow down rev and increase throttle when approaching target
+        Rev = 0
+        Throttle = 0.5  
+    } else {
+        Rev = 1
+        # turn off forward throttle
+        Throttle = 0
+    }
+    
+    
+    # reverse steering
+    Corr = Corr * -1
+    
+} else {
+    # not reversed, so go forwards.
+    Throttle = 1
+    Rev = 0
+}
+
+
+
+Steer=clamp(Corr, -1, 1)
+
+
+VAng = Vehicle:angles()
+Out = VAng:pitch()
+RollCW=0 RollCCW=0 PitchDn=0 PitchUp=0
+if (VAng:roll() <= -MaxRoll) {RollCW = 1}   else {RollCW = 0}
+if (VAng:roll() >= MaxRoll) {RollCCW = 1}   else {RollCCW = 0}
+if (VAng:pitch() <= -MaxPitch) {PitchDn = 1} else {PitchDn = 0}
+if (VAng:pitch() >= MaxPitch) {PitchUp = 1} else {PitchUp = 0}
+
+RL=0 RR=0 FL=0 FR=0
+if (RollCW == 1) {RR=1, FR=1}
+if (RollCCW ==1) {RL=1, FL=1}
+if (PitchDn ==1) {FL=1, FR=1}
+if (PitchUp ==1) {RL=1, RR=1}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

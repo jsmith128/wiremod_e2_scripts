@@ -1,0 +1,155 @@
+@name 
+@inputs 
+@outputs 
+@persist 
+@strict
+
+#"Engine Start", 
+#"Engine Stop", 
+#"Engine Toggle", 
+
+#"Gear Down", 
+#"Gear Up", 
+#"Set Gear", 
+
+#"Steer", 
+#"Throttle", 
+#"Brake/Reverse", 
+#"Handbrake", 
+#"Clutch", 
+
+#"Lock", 
+#"Eject Driver", 
+#"Eject Passengers"
+
+
+
+Self = entity()
+Car = Self:getConnectedEntities()[2, entity]
+CarWL = Car:wirelink()
+
+
+#CarInputs = Car:getWireInputs()
+
+#print(CarInputs)
+
+
+
+
+function number isBetween(Var:number, Limit:number)
+{
+    if (Var >= -Limit && Var <= Limit) {
+        return 1
+    } else {
+        return 0
+    }
+}
+
+function setThrottle(V:number) {
+    CarWL["Throttle", number] = V
+    #CarWL:setNumber("Throttle", V)
+}
+
+function setBrake(V:number) {
+    CarWL["Brake/Reverse", number] = V
+    #CarWL:setNumber("Brake/Reverse", V)
+}
+
+function setSteer(V:number) {
+    CarWL["Steer", number] = V
+    #CarWL:setNumber("Steer", V)
+}
+
+function startCar() {
+    CarWL["Engine Start", number] = 1
+}
+
+function stopCar() {
+    CarWL["Engine Stop", number] = 1
+}
+
+function eject() {
+    CarWL["Eject Driver", number] = 1
+    CarWL["Eject Passengers", number] = 1
+}
+
+findByClass("player")
+Target = findResult(1)
+
+MaxAngToRev = 90 #115
+#MaxRoll = 25
+#MaxPitch = 10
+
+
+startCar()
+setThrottle(0.2)  
+timer("main", 0.02, 0, function() {
+    Car = Self:getConnectedEntities()[2, entity]
+    CarPos = Car:pos()
+    CarAng = Car:angles()
+    #holoCreate(0, Center, vec(10,10,10))
+    
+    AngError = bearing(CarPos, CarAng, Target:pos())
+    KP = 0.03
+    AngCorr = AngError * KP
+    
+    # set reverse mode if target is too far away from current heading
+    if (AngError<=-MaxAngToRev | AngError>=MaxAngToRev) {
+        Reversing = 1
+    }
+    
+    if (Reversing == 1) {
+        if (isBetween(AngCorr, 0.6) == 1) { #Stop reversing only once close to facing target
+            Reversing = 0
+        }
+        
+        
+        
+        if (isBetween(AngCorr, 0.8) == 1) { # slow down rev and increase throttle when approaching target
+            Rev = 0
+            Throttle = 0.5  
+        } else {
+            Rev = 1
+            # turn off forward throttle
+            Throttle = 0
+        }
+        
+        
+        # reverse steering
+        AngCorr = AngCorr * -1
+        
+    } else {
+        # not reversed, so go forwards.
+        Throttle = 1
+        Rev = 0
+    }
+    
+    Steer=clamp(AngCorr, -1, 1)
+    
+    
+    setThrottle(Throttle)
+    setBrake(Rev)
+    setSteer(Steer)
+    
+    
+    
+
+#[    RollCW=0 RollCCW=0 PitchDn=0 PitchUp=0
+    if (CarAng:roll() <= -MaxRoll) {RollCW = 1}   else {RollCW = 0}
+    if (CarAng:roll() >= MaxRoll) {RollCCW = 1}   else {RollCCW = 0}
+    if (CarAng:pitch() <= -MaxPitch) {PitchDn = 1} else {PitchDn = 0}
+    if (CarAng:pitch() >= MaxPitch) {PitchUp = 1} else {PitchUp = 0}
+    
+    RL=0 RR=0 FL=0 FR=0
+    if (RollCW == 1) {RR=1, FR=1}
+    if (RollCCW ==1) {RL=1, FL=1}
+    if (PitchDn ==1) {FL=1, FR=1}
+    if (PitchUp ==1) {RL=1, RR=1}]#
+
+    
+})
+
+
+
+#R = ranger()
+

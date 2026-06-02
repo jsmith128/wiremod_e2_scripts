@@ -1,0 +1,88 @@
+@name Simfphys Vehicle ControllerV4.2
+@inputs Target:entity Vehicle:entity Enable Bearing:vector
+@outputs Steer Throttle Rev Engine_Start Engine_Stop Handbrake Out Out2
+@persist A T T2 D D2 Dir Reversing Out2
+@trigger
+#####Made by Steveskeleton @October 23 2019#####
+####Please excuse my bad programming skills ####
+
+###               Instructions               ###
+
+# >Wire Steer, Throttle, Engine_Start/Stop and Handbrake to the Simfphys vehicle
+# >Wire ANY entity output to the Target input on the E2
+# >Wire an Entity Marker output to the Vehicle input 
+    #(!!!make sure to LINK it to the vehicle NOT wire or weld (right click)!!!)
+# >Connect a button to the Enable input
+# >Turn it on and make sure you do not enter the vehicle, if you do, just 
+    #restart the car a few times
+# >Optionally, you can lock the vehicle so nobody can enter.
+
+#Thanks for taking the time to check this out!
+Dir=0 #Eventually throttle is set to this, not sure what it means
+Throttle=0 
+Handbrake=0 
+Steer=0 #1 = right, -1 = left, 0 = straight
+
+interval(10)
+
+
+MaxAngToRev = 90 #115
+
+
+if (Enable) {
+    Engine_Stop=0
+    Engine_Start=1
+    Dir=0.5
+    } 
+if (!Enable | Target:model()==noentity():model()) {
+    Engine_Start=0
+    Engine_Stop=1
+    Dir=0
+    }
+
+A=bearing(Vehicle:pos(), Vehicle:angles(), Target:pos())
+if (Bearing !== noentity():vector()) {A = Bearing}
+
+
+Out = A
+Out2 = Reversing
+
+if (A<=5&&A>=-5) {A=0} #Round to straight if close
+if (A<=-MaxAngToRev | A>=MaxAngToRev) {
+    Reversing = 1
+}
+if (Reversing == 1) {
+    if (A == 0) { #Stop reversing if facing target
+        Reversing = 0
+    }
+    
+    A = A -A*2 #Swap sign on A
+    Dir = -1
+    
+}
+A = clamp(A, -1, 1)
+Steer=A#-A*2 #Reverse steering
+#if (Vehicle:pos():distance(Object:pos())<=400) {
+#    T=T+0.1} else {T=0 Handbrake=0} #If target is really far away, add to timer. Else reset it
+#if (T>=30) {Handbrake=1} #If timer goes up too much, set handbrake
+#if (T>=50) {Handbrake=0 T=0} #After enough time, turn off handbrake and reset T
+#if (Vehicle:pos():distance(Object:pos())>=1000&&Dir==1) {Dir=1} #If really really far away, turn throttle to max
+
+if (Dir<0) {Rev = Dir-Dir*2} else {Throttle=Dir*2 Rev=0}
+
+
+#[if (Dir>0) {Throttle=Dir}
+elseif (Dir<0) {Rev=Dir-Dir*2}
+else {Rev=0 Throttle=0}
+if (Rev>0&&Throttle>0) {Rev=0}]#
+
+#[if (Dir!=0) {T2=T2+0.2}
+if (T2>=60) { 
+    D2=D
+    D=Vehicle:pos():distance(Object:pos())
+        if (D>=D2-450&&D<=D2+450&&D!=D2) {Handbrake=1}
+        else {T2=0}
+    if (T2<=59) {Handbrake=0}
+    }
+if (T2>=100) {T2=0}]# #Not a very well thought-out feature
+

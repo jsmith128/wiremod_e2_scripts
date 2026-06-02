@@ -1,0 +1,103 @@
+@name Photography2 v0
+@inputs Start:number Reset:number Framing:number SCR:wirelink Ranger:wirelink
+@outputs LR:number UD:number
+@persist 
+@trigger none
+@strict
+
+if (!SCR){print("error") exit()}
+
+#print(Ranger:outputType("RangerData"))
+
+
+
+# 1 - 512 inclusive
+let PixWidth = 64
+let PixX = 1
+let PixY = 1
+let PixDir = 1
+# degrees
+let Width = 35
+let Height = 35
+
+event input(Inp:string){
+    if (Inp == "Reset" && Reset == 1) {
+        print("Reset")
+
+        PixX = 1
+        PixY = 1
+    }
+    
+    if (Inp == "Start" && Start == 1) {
+        print("Start")   
+    }
+}
+
+
+
+
+
+
+
+# pixel index, max degrees in that axis
+function number index2Ang(Ind:number, Width:number) {
+    let Slice = Width / PixWidth
+    let HalfWidth = Width / 2
+    return (Ind * Slice) - HalfWidth
+}
+
+let LastRun = 0
+
+let FramingIndex = 1
+timer("main", 0.015, -1, function() {
+    if(Framing==1) {
+        if (curtime() - LastRun < 0.1) {return}
+        LastRun = curtime()
+        FramingIndex+= 1
+        if (FramingIndex == 1) {
+            LR = -Width/2
+            UD = -Height/2
+        } elseif (FramingIndex == 2) {
+            LR = Width/2
+            UD = -Height/2
+        } elseif (FramingIndex == 3) {
+            LR = Width/2
+            UD = Height/2
+        } elseif (FramingIndex == 4) {
+            LR = -Width/2
+            UD = Height/2
+            FramingIndex = 0
+        }
+        return
+    }
+    
+    if(Start==0) {return}
+    #print(PixX, PixY)
+    let Dist = Ranger["RangerData", ranger]:fraction()
+    
+    SCR[(PixX-1) + (PixY-1)*PixWidth] = (1 - Dist) * 255
+    
+    
+    
+    # Increment counters
+    PixX+= PixDir
+    if (PixX > PixWidth) {
+        PixDir = -1
+        PixY+= 1
+    } elseif (PixX < 1) {
+        PixDir = 1
+        PixY+= 1
+    }
+    
+    # back to top
+    if (PixY > PixWidth) {
+        PixY = 1
+    }
+
+    LR = -index2Ang(PixX, Width)
+    UD = index2Ang(PixY, Height)
+})
+
+
+
+print("abc")

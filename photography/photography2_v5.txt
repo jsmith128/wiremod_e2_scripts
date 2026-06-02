@@ -1,0 +1,117 @@
+@name Photography2 v5
+@inputs Start:number Reset:number SCR:wirelink
+@outputs LR:number UD:number
+@persist 
+@trigger none
+@strict
+
+if (!SCR){print("error") exit()}
+SCR[1048569] = 3
+
+let Length = 250
+# degrees
+let Width = 75
+let Height = 75
+
+let RandomEnts = 1
+
+# 0 - max inclusive
+let PixWidth = SCR[1048573]
+let PixX = 1
+let PixY = 1
+let PixDir = 0 # steps in the snaking pattern
+
+
+
+event input(Inp:string){
+    if (Inp == "Reset" && Reset == 1) {
+        print("Reset")
+
+        PixX = 1
+        PixY = 1
+        PixDir = 0
+    }
+    
+    if (Inp == "Start" && Start == 1) {
+        print("Start")   
+    }
+}
+
+
+holoCreate(1,vec(0,0,0))
+function holo(Id:number, Rang:ranger) {
+    EndPos = Rang:position()
+    Normal = Rang:hitNormal()
+    HoloAng = entity():angles() #+ ang(-Xang, Yang, 0)
+    holoPos(Id,EndPos + (Normal*2)) 
+    holoAng(Id,HoloAng) #Angle it. adding 90 to pitch because it is a cylinder, so I want to scale its Z, not its X.
+    holoScale(Id,vec(0.2,0.2,4)) #Scale it to make it as long as the distance.
+}
+
+function number defineColor(Rang:ranger) {
+    Dist = Rang:fraction()
+    Dist = 1-Dist
+    Dist = Dist * 255
+    Color = 0
+    if (RandomEnts && Rang:hit() && !Rang:hitWorld()) {
+        Color = rgb2digi(Dist, 0, 0, 3)
+    } else {
+        Color = rgb2digi(Dist, Dist, Dist, 3)
+    }
+    
+    return Color
+}
+
+# pixel index, max degrees in that axis
+function number index2Ang(Ind:number, Width:number) {
+    let Slice = Width / PixWidth
+    let HalfWidth = Width / 2
+    return (Ind * Slice) - HalfWidth
+}
+
+
+
+timer("main", 0.015, -1, function() {
+    if(Start==0) {return}
+    
+    Xang = index2Ang(PixX, Width)
+    Yang = index2Ang(PixY, Height)
+    
+    Rang = rangerAngle(Length, Xang, Yang)
+    
+    Color = defineColor(Rang)
+    SCR[(PixX-1) + (PixY-1)*PixWidth] = Color
+    
+    
+    
+    # Increment counters
+    
+    if (PixDir == 0) {
+        PixX+= 1
+        if (PixX >= PixWidth) {PixDir = 1}
+    } elseif (PixDir == 1) {
+        PixY+= 1   
+        PixDir = 2
+    } elseif (PixDir == 2) {
+        PixX-= 1
+        if (PixX <= 1) {PixDir = 3} 
+    } elseif (PixDir == 3) {
+        PixY+=1
+        PixDir = 0
+    }
+    
+    
+    
+    # back to top
+    if (PixY > PixWidth) {
+        PixY = 0
+    }
+
+    
+    
+    holo(1, Rang)
+})
+
+
+
+print("abc")
